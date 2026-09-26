@@ -76,3 +76,30 @@ def test_remove_selected_row(app):
     w.remove_selected()
     assert w.model.rowCount() == 2
     assert [r.source for r in w.model.rows] == ["a.ncm", "c.ncm"]
+
+
+def test_standalone_lyrics_start_and_cancel(app, tmp_path):
+    import gui.main_window as mw
+    from core.online_lyrics import DownloadSummary
+
+    class Pool:
+        def __init__(self):
+            self.jobs = []
+
+        def start(self, job):
+            self.jobs.append(job)
+
+    w = mw.MainWindow()
+    w.pool = Pool()
+    w.out_edit.setText(str(tmp_path))
+    w.lyrics_kind.setCurrentIndex(1)
+    w.lyrics_input.setText("https://music.163.com/playlist?id=42")
+    w.start_lyrics_download()
+    assert len(w.pool.jobs) == 1
+    assert w.pool.jobs[0].kind == "playlist"
+    assert not w.lyrics_download_btn.isEnabled()
+    w.cancel_lyrics_download()
+    assert w.pool.jobs[0]._cancelled.is_set()
+    w.on_lyrics_finished(DownloadSummary(total=2, saved=1, cancelled=True), "")
+    assert w.lyrics_download_btn.isEnabled()
+    assert "已取消" in w.lyrics_status.text()

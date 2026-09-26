@@ -1,10 +1,12 @@
 import os
+import threading
 from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
 from core.converter import convert_file
 from core.ncm import parse_ncm
 from core.metadata import extract_tags, read_audio_tags
 from core.transcode import transcode, FfmpegNotFound
 from core.lyrics import find_lrc
+from core.online_lyrics import download_lyrics
 
 
 class WorkerSignals(QObject):
@@ -85,3 +87,32 @@ class PreviewWorker(QRunnable):
             self.signals.done.emit(self.index, tags, fmt, content.cover or b"")
         except Exception:
             self.signals.done.emit(self.index, {"title": "", "artists": [], "album": ""}, "?", b"")
+
+
+class LyricsDownloadSignals(QObject):
+    progress = pyqtSignal(int, int, str)
+    finished = pyqtSignal(object, str)  # DownloadSummary or None, error message
+
+
+class LyricsDownloadWorker(QRunnable):
+    def __init__(self, kind, value, out_dir):
+        super().__init__()
+        self.kind = kind
+        self.value = value
+        self.out_dir = out_dir
+        self._cancelled = threading.Event()
+        self.signals = LyricsDownloadSignals()
+
+    def cancel(self):
+        self._cancelled.set()
+
+    def run(self):
+        try:
+            summary = download_lyrics(
+                self.kind, self.value, self.out_dir,
+                progress=self.signals.progress.emit,
+                cancelled=self._cancelled.is_set,
+            )
+            self.signals.finished.emit(summary, "")
+        except Exception as exc:
+            self.signals.finished.emit(None, str(exc))
