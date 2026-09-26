@@ -15,7 +15,7 @@ class WorkerSignals(QObject):
 
 class ConvertWorker(QRunnable):
     def __init__(self, index, src, out_dir, template, conflict,
-                 to_wav=False, delete_src=False, embed_lyrics=False, lyrics_mode="sidecar"):
+                 to_wav=False, delete_src=False, embed_lyrics=False, lyrics_mode="embed"):
         super().__init__()
         self.index = index
         self.src = src
@@ -29,8 +29,10 @@ class ConvertWorker(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
+        # WAV cannot store lyric tags. Keep a matching sidecar when converting NCM to WAV.
+        lyrics_mode = "sidecar" if self.to_wav and self.src.lower().endswith(".ncm") else self.lyrics_mode
         res = convert_file(self.src, self.out_dir, self.template, self.conflict,
-                           embed_lyrics=self.embed_lyrics, lyrics_mode=self.lyrics_mode)
+                           embed_lyrics=self.embed_lyrics, lyrics_mode=lyrics_mode)
         try:
             if res.status == "ok" and self.to_wav and not res.special and not res.passthrough:
                 original = res.output_path

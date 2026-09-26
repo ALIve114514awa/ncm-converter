@@ -26,7 +26,7 @@ class ConvertResult:
 
 
 def _maybe_embed_lyrics(src: str, out_path: str, fmt: str, res: "ConvertResult",
-                        mode: str = "sidecar", song_id=None) -> None:
+                        mode: str = "embed", song_id=None) -> None:
     """先用同名 .lrc；NCM 有歌曲 ID 时在线补全缺失歌词。
     mode='sidecar' 在输出旁生成同名 .lrc（外挂，兼容性好）；mode='embed' 写进音频标签（内嵌）。"""
     lyrics = read_lyrics(src)
@@ -104,7 +104,7 @@ def _write_output(res: ConvertResult, out_dir: str, template: str,
 
 def _passthrough(src: str, out_dir: str, template: str, conflict: str,
                  write_tags: bool = True,
-                 embed_lyrics: bool = False, lyrics_mode: str = "sidecar") -> ConvertResult:
+                 embed_lyrics: bool = False, lyrics_mode: str = "embed") -> ConvertResult:
     """已是可播放格式（mp3 / flac）：不转码，按命名模板原样复制到输出目录。"""
     fmt = "flac" if src.lower().endswith(".flac") else "mp3"
     tags, cover = read_audio_tags(src)
@@ -127,7 +127,7 @@ def _passthrough(src: str, out_dir: str, template: str, conflict: str,
 
 def convert_file(src: str, out_dir: str, template: str, conflict: str,
                  write_tags: bool = True, embed_lyrics: bool = False,
-                 lyrics_mode: str = "sidecar") -> ConvertResult:
+                 lyrics_mode: str = "embed") -> ConvertResult:
     if src.lower().endswith((".mp3", ".flac")):
         return _passthrough(src, out_dir, template, conflict, write_tags, embed_lyrics, lyrics_mode)
     res = ConvertResult(source=src)

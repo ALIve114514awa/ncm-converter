@@ -178,7 +178,7 @@ class MainWindow(QMainWindow):
         )
         self.lyrics_location.setWordWrap(True)
         root.addWidget(self.lyrics_location)
-        self.lyrics_status = QLabel("已有文件会跳过；转换生成的外嵌歌词仍保存在音频旁")
+        self.lyrics_status = QLabel("已有文件会跳过；转换歌曲默认内嵌歌词，选择外嵌时 .lrc 保存在音频旁")
         self.lyrics_status.setWordWrap(True)
         root.addWidget(self.lyrics_status)
         self.lyrics_bar = QProgressBar()
@@ -213,11 +213,13 @@ class MainWindow(QMainWindow):
         opt = QHBoxLayout()
         opt.setSpacing(6)
         self.keep_tree = QCheckBox("保留目录结构")
-        self.embed_lrc = QCheckBox("嵌入歌词")
+        self.embed_lrc = QCheckBox("添加歌词")
+        self.embed_lrc.setChecked(True)
         self.lyrics_mode = QComboBox()
-        self.lyrics_mode.addItems(["外嵌（推荐）", "内嵌"])
+        self.lyrics_mode.addItem("内嵌（默认）", "embed")
+        self.lyrics_mode.addItem("外嵌 (.lrc)", "sidecar")
         self.lyrics_mode.setMinimumWidth(120)
-        self.lyrics_mode.setEnabled(False)
+        self.lyrics_mode.setEnabled(True)
         self.to_wav = QCheckBox("转 WAV")
         self.del_src = QCheckBox("删除原文件")
 
@@ -232,12 +234,13 @@ class MainWindow(QMainWindow):
 
         add_item(self.keep_tree, "选择文件夹批量转换时，在输出目录里复刻原来的子文件夹层级。")
         add_item(self.embed_lrc,
-                 "转换 NCM 时优先使用源文件旁的同名 .lrc；没有时按歌曲 ID 在线获取（WAV 不支持）。\n"
-                 "· 外嵌（推荐）：在输出旁生成 .lrc 文件，兼容性好，几乎所有播放器都能显示。\n"
-                 "· 内嵌：写进音频文件内部，单文件更整洁，但不少播放器不读、可能不显示。\n"
-                 "若只想要单个文件又不在意歌词，建议直接不勾「嵌入歌词」。",
+                 "默认把歌词写入转换后的 MP3/FLAC 文件；优先使用源文件旁的同名 .lrc，"
+                 "没有时按 NCM 歌曲 ID 在线获取。\n"
+                 "· 内嵌：写进音频文件标签；部分播放器可能不显示。\n"
+                 "· 外嵌：在输出音频旁生成同名 .lrc。\n"
+                 "转 WAV 时无法内嵌，会自动改为同名外嵌 .lrc。取消勾选则不添加歌词。",
                  extra=self.lyrics_mode)
-        add_item(self.to_wav, "把输出再转成 WAV（需要 ffmpeg）。WAV 兼容性强但体积大，且不含封面/标签/歌词，一般无需开启。")
+        add_item(self.to_wav, "把输出再转成 WAV（需要 ffmpeg）。WAV 不支持内嵌歌词；启用歌词时会在 WAV 旁生成同名 .lrc。")
         add_item(self.del_src, "转换成功后删除原始文件，并连同源文件旁的同名 .lrc 一起删除。默认关闭；首次勾选会二次确认。")
         opt.addStretch()
         root.addLayout(opt)
@@ -288,7 +291,7 @@ class MainWindow(QMainWindow):
         self.apply_theme()
 
     def _on_embed_toggled(self, checked=None):
-        """勾选「嵌入歌词」后，给有同名 .lrc 的待转项在状态里标注「准备嵌入歌词」。"""
+        """启用歌词后，给有同名 .lrc 的待转项标注准备状态。"""
         if checked is None:
             checked = self.embed_lrc.isChecked()
         self.lyrics_mode.setEnabled(checked)  # 外嵌/内嵌选择仅在勾选嵌入歌词时可用
@@ -296,9 +299,9 @@ class MainWindow(QMainWindow):
             if r.status != "pending":
                 continue
             if checked and find_lrc(r.source):
-                if r.reason != "准备嵌入歌词":
-                    self.model.update_row(i, reason="准备嵌入歌词")
-            elif r.reason == "准备嵌入歌词":
+                if r.reason != "准备添加歌词":
+                    self.model.update_row(i, reason="准备添加歌词")
+            elif r.reason == "准备添加歌词":
                 self.model.update_row(i, reason="")
 
     def _help(self, text):
@@ -440,7 +443,7 @@ class MainWindow(QMainWindow):
             self.model.set_status(i, "running")
             self._running += 1
             src = self.model.rows[i].source
-            lyrics_mode = "embed" if self.lyrics_mode.currentText() == "内嵌" else "sidecar"
+            lyrics_mode = self.lyrics_mode.currentData()
             w = ConvertWorker(i, src, self._out_dir_for(src), self.tmpl.currentText(),
                               CONFLICT_MAP[self.conflict.currentText()],
                               to_wav=self.to_wav.isChecked(), delete_src=self.del_src.isChecked(),

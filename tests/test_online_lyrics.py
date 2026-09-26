@@ -172,7 +172,14 @@ def test_convert_prefers_local_lrc_over_online(tmp_path, monkeypatch):
     result = converter.convert_file(str(src), str(tmp_path / "out"), "{标题}", "rename",
                                     write_tags=False, embed_lyrics=True)
     assert result.status == "ok"
-    assert (tmp_path / "out" / "Song.lrc").read_text(encoding="utf-8") == "[00:01.00]local"
+    from mutagen.id3 import ID3
+    assert ID3(result.output_path).getall("USLT")[0].text == "[00:01.00]local"
+    assert not (tmp_path / "out" / "Song.lrc").exists()
+
+    sidecar = converter.convert_file(str(src), str(tmp_path / "sidecar"), "{标题}", "rename",
+                                     write_tags=False, embed_lyrics=True, lyrics_mode="sidecar")
+    assert sidecar.status == "ok"
+    assert (tmp_path / "sidecar" / "Song.lrc").read_text(encoding="utf-8") == "[00:01.00]local"
 
 
 def test_convert_fetches_online_lrc_by_embedded_song_id(tmp_path, monkeypatch):
@@ -191,7 +198,9 @@ def test_convert_fetches_online_lrc_by_embedded_song_id(tmp_path, monkeypatch):
                                     write_tags=False, embed_lyrics=True)
     assert result.status == "ok"
     assert seen == [123]
-    assert (tmp_path / "out" / "Song.lrc").read_text(encoding="utf-8") == "[00:01.00]online"
+    from mutagen.id3 import ID3
+    assert ID3(result.output_path).getall("USLT")[0].text == "[00:01.00]online"
+    assert not (tmp_path / "out" / "Song.lrc").exists()
 
 
 def test_convert_online_failure_keeps_audio(tmp_path, monkeypatch):
