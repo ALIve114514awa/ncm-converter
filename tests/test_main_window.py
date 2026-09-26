@@ -78,7 +78,7 @@ def test_remove_selected_row(app):
     assert [r.source for r in w.model.rows] == ["a.ncm", "c.ncm"]
 
 
-def test_standalone_lyrics_start_and_cancel(app, tmp_path):
+def test_standalone_lyrics_start_and_cancel(app, tmp_path, monkeypatch):
     import gui.main_window as mw
     from core.online_lyrics import DownloadSummary
 
@@ -89,14 +89,18 @@ def test_standalone_lyrics_start_and_cancel(app, tmp_path):
         def start(self, job):
             self.jobs.append(job)
 
+    lyric_dir = tmp_path / "lyrics"
+    monkeypatch.setattr(mw, "lyrics_download_dir", lambda: str(lyric_dir))
     w = mw.MainWindow()
     w.pool = Pool()
-    w.out_edit.setText(str(tmp_path))
+    w.out_edit.setText(str(tmp_path / "audio"))
     w.lyrics_kind.setCurrentIndex(1)
     w.lyrics_input.setText("https://music.163.com/playlist?id=42")
     w.start_lyrics_download()
     assert len(w.pool.jobs) == 1
     assert w.pool.jobs[0].kind == "playlist"
+    assert w.pool.jobs[0].out_dir == str(lyric_dir)
+    assert str(lyric_dir) in w.lyrics_location.text()
     assert not w.lyrics_download_btn.isEnabled()
     w.cancel_lyrics_download()
     assert w.pool.jobs[0]._cancelled.is_set()

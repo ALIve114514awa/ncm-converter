@@ -12,6 +12,7 @@ from gui.workers import ConvertWorker, PreviewWorker, LyricsDownloadWorker
 from gui import theme
 from core.transcode import find_ffmpeg
 from core.lyrics import find_lrc
+from core.online_lyrics import lyrics_download_dir
 from core.title_sort import sorted_import_paths
 
 try:
@@ -172,7 +173,12 @@ class MainWindow(QMainWindow):
         self.lyrics_cancel_btn.clicked.connect(self.cancel_lyrics_download)
         lyrics_row.addWidget(self.lyrics_cancel_btn)
         root.addLayout(lyrics_row)
-        self.lyrics_status = QLabel("歌词保存到上方输出目录；已有文件会跳过")
+        self.lyrics_location = QLabel(
+            f"独立下载目录：{lyrics_download_dir()}（下载时自动创建，与音频输出目录无关）"
+        )
+        self.lyrics_location.setWordWrap(True)
+        root.addWidget(self.lyrics_location)
+        self.lyrics_status = QLabel("已有文件会跳过；转换生成的外嵌歌词仍保存在音频旁")
         self.lyrics_status.setWordWrap(True)
         root.addWidget(self.lyrics_status)
         self.lyrics_bar = QProgressBar()
@@ -353,15 +359,16 @@ class MainWindow(QMainWindow):
         if self._lyrics_worker or self._running:
             return
         value = self.lyrics_input.text().strip()
-        out_dir = self.out_edit.text().strip()
-        if not value or not out_dir:
-            self.lyrics_status.setText("请先输入歌曲／歌单 ID 或网址，并选择输出目录")
+        if not value:
+            self.lyrics_status.setText("请先输入歌曲／歌单 ID 或网址")
             return
         self.lyrics_bar.setMaximum(1)
         self.lyrics_bar.setValue(0)
         self.lyrics_status.setText("正在查询歌曲列表…")
         self.lyrics_status.setToolTip("")
-        self._lyrics_worker = LyricsDownloadWorker(self.lyrics_kind.currentData(), value, out_dir)
+        self._lyrics_worker = LyricsDownloadWorker(
+            self.lyrics_kind.currentData(), value, lyrics_download_dir()
+        )
         self._lyrics_worker.signals.progress.connect(self.on_lyrics_progress)
         self._lyrics_worker.signals.finished.connect(self.on_lyrics_finished)
         self.set_busy(True)

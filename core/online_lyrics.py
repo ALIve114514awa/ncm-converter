@@ -18,6 +18,13 @@ _SHORT_HOST = "163cn.tv"
 _SAVED_ID = re.compile(r"\[(\d+)\]\.lrc$", re.IGNORECASE)
 
 
+def lyrics_download_dir():
+    """Return the dedicated folder for standalone lyric downloads."""
+    if os.name == "nt":
+        return r"C:\LRC"
+    return os.path.join(os.path.expanduser("~"), "Music", "LRC")
+
+
 class LyricsLookupError(ValueError):
     """Invalid input or a public lookup that cannot be completed."""
 

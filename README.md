@@ -43,14 +43,14 @@ Requirements:
 - **Preview before converting**: title / artist / album / format / cover thumbnail shown up front.
 - **Metadata & cover**: written back into FLAC / MP3; non-RGB covers are normalized to RGB so players display them.
 - **Lyrics**: when enabled, a same-named local `.lrc` takes priority. If it is missing, an NCM file's song ID is used to fetch lyrics online. Original and translated timed lines are combined in one LRC, either beside the output audio or embedded inside it.
-- **Standalone lyrics download**: enter a song or public playlist ID, NetEase URL, or official share short link. Save LRCs to the output directory, see progress, and cancel a batch.
+- **Standalone lyrics download**: enter a song or public playlist ID, NetEase URL, or official share short link. On Windows, LRCs are saved to `C:\LRC` (created on first download), independently of the audio output directory. See progress and cancel a batch.
 - **Thoughtful options**: naming templates, preserve folder structure, conflict policy (overwrite / rename / skip), optional convert-to-WAV (auto-disabled when ffmpeg is missing), optional delete-source (also removes the matching `.lrc`), light / dark theme, retry failed, one-click open output folder — with a **?** help button next to each option.
 
 ## Online lyrics
 
 Check **Lyrics** during NCM conversion and choose sidecar or embedded output. A same-named local LRC is used first; if absent, the song ID stored in the NCM metadata is looked up online. A lookup failure does not stop audio export.
 
-For a separate download, choose **Song** or **Public playlist**, enter a numeric ID, a `music.163.com` URL, or a `163cn.tv` share short link, and click **Download LRC**. Files go to the selected output directory with the song ID in each filename. Existing files are skipped. This needs no pasted Cookie and only supports songs and playlists accessible without login; owner-only playlists cannot be read.
+For a separate download, choose **Song** or **Public playlist**, enter a numeric ID, a `music.163.com` URL, or a `163cn.tv` share short link, and click **Download LRC**. On Windows, files go to `C:\LRC`, which the app creates on the first download; on macOS/Linux, they go to `~/Music/LRC`. Each filename includes the song ID, and existing files are skipped. The audio output directory above does not change this location. During NCM conversion, sidecar LRCs still go beside the output audio so players can find them. This needs no pasted Cookie and only supports songs and playlists accessible without login; owner-only playlists cannot be read.
 
 ## Screenshot
 
